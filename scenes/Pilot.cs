@@ -12,8 +12,7 @@ public class Pilot : KinematicBody
 	
 	public enum MovementStateType
 	{
-		Walk,
-		Sprint,
+		WalkOrSprint,
 		Airborne,
 		Crouch,
 		Slide,
@@ -44,7 +43,7 @@ public class Pilot : KinematicBody
 
 	private Vector3 _lookingDirectionVector = Vector3.Zero;
 	private Vector3 _velocity = Vector3.Zero;
-	private MovementStateType _currentMovementState = MovementStateType.Walk;
+	private MovementStateType _currentMovementState = MovementStateType.WalkOrSprint;
 
 	private Camera _camera;
 	
@@ -102,9 +101,18 @@ public class Pilot : KinematicBody
 		_velocity += movement;
 	}
 	
-	private void Walk(Vector3 direction, float speed, float delta)
+	private void Move(Vector3 direction, float acceleration, float deceleration, float maxSpeed, float delta)
 	{
+		Vector3 hVel = _velocity;
+		hVel.y = 0;
 		
+		direction *= maxSpeed;
+
+		float accel = _lookingDirectionVector.Dot(hVel) > 0 ? acceleration : deceleration;
+
+		hVel = hVel.LinearInterpolate(direction, accel * delta);
+		_velocity.x = hVel.x;
+		_velocity.z = hVel.z;
 	}
 
 	private void ApplyGroundFriction(float factor)
@@ -165,21 +173,9 @@ public class Pilot : KinematicBody
 				_velocity.y = JumpSpeed;
 		}
 
-		// Simulate gravity by subtracting the velocity each frame
+		// Simulate gravity by subtracting the y-velocity each frame
 		_velocity.y += delta * -Gravity;
-
-		Vector3 hVel = _velocity;
-		hVel.y = 0;
-
-		Vector3 target = _lookingDirectionVector;
-
-		target *= MaxWalkSpeed;
-
-		float accel = _lookingDirectionVector.Dot(hVel) > 0 ? WalkAcceleration : WalkDeceleration;
-
-		hVel = hVel.LinearInterpolate(target, accel * delta);
-		_velocity.x = hVel.x;
-		_velocity.z = hVel.z;
+		Move(_lookingDirectionVector, WalkAcceleration, WalkDeceleration, MaxWalkSpeed, delta);
 		_velocity = MoveAndSlide(_velocity, new Vector3(0, 1, 0), false, 4, Mathf.Deg2Rad(MaxSlopeAngle));
 
 	}
