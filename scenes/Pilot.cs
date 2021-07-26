@@ -9,7 +9,7 @@ public class Pilot : KinematicBody
 		Snap,
 		Collide
 	}
-	
+
 	public enum MovementStateType
 	{
 		WalkOrSprint,
@@ -17,22 +17,27 @@ public class Pilot : KinematicBody
 		Crouch,
 		Slide,
 	}
-	
+
 	private const float VerticalLookSensitivity = .2f;
 	private const float HorizontalLookSensitivity = .2f;
-	
+
 	private const float Gravity = 24.8f;
+
 	private const float MaxWalkSpeed = 20f;
 	private const float WalkAcceleration = 4.5f;
 	private const float WalkDeceleration = 16f;
+
 	private const float MaxSprintSpeed = 30f;
-	private const float JumpSpeed = 18f;
+	private const float SprintAcceleration = 8f;
+	private const float SprintDeceleration = 16f;
+
+	private const float JumpSpeed = 12f;
 
 	private const float WalkFrictionGround = 0.95f;
 	private const float SlideFrictionGround = 0.2f;
-	
+
 	private const float MaxSlopeAngle = 40f;
-	
+
 	private bool _left;
 	private bool _right;
 	private bool _forward;
@@ -46,7 +51,7 @@ public class Pilot : KinematicBody
 	private MovementStateType _currentMovementState = MovementStateType.WalkOrSprint;
 
 	private Camera _camera;
-	
+
 	public override void _Ready()
 	{
 		_camera = GetNode<Camera>("Camera");
@@ -71,11 +76,11 @@ public class Pilot : KinematicBody
 		_right = Input.IsActionPressed("right");
 		_forward = Input.IsActionPressed("forward");
 		_backward = Input.IsActionPressed("backward");
-		
+
 		_crouch = Input.IsActionPressed("crouch");
 		_sprint = Input.IsActionJustPressed("sprint");
 		_jump = Input.IsActionJustPressed("jump");
-		
+
 		// This code is not needed for player movement. It makes it easier for us exit the game since
 		// this code allows us to press Esc and release the mouse from the window. 
 		if (Input.IsActionJustPressed("ui_cancel"))
@@ -100,12 +105,12 @@ public class Pilot : KinematicBody
 
 		_velocity += movement;
 	}
-	
+
 	private void Move(Vector3 direction, float acceleration, float deceleration, float maxSpeed, float delta)
 	{
 		Vector3 hVel = _velocity;
 		hVel.y = 0;
-		
+
 		direction *= maxSpeed;
 
 		float accel = _lookingDirectionVector.Dot(hVel) > 0 ? acceleration : deceleration;
@@ -117,7 +122,6 @@ public class Pilot : KinematicBody
 
 	private void ApplyGroundFriction(float factor)
 	{
-		
 	}
 
 	public void SetMovementState(MovementStateType movementState)
@@ -125,7 +129,6 @@ public class Pilot : KinematicBody
 		// Call the clear function for the movement state that is being changed from	
 		switch (_currentMovementState)
 		{
-			
 		}
 
 		_currentMovementState = movementState;
@@ -133,10 +136,9 @@ public class Pilot : KinematicBody
 		// Call the initialize function for the movement state that is being changed to
 		switch (_currentMovementState)
 		{
-			
 		}
 	}
-	
+
 	private void _ProcessMovement(float delta)
 	{
 		// Clear the looking direction vector for each frame
@@ -158,14 +160,14 @@ public class Pilot : KinematicBody
 
 		// Using the camera transform that we change based on mouse movement, we combine that with
 		// the player's keyboard input to create an appropriate movement vector. 
-		
+
 		Transform cameraTransform = _camera.GlobalTransform;
-		
+
 		_lookingDirectionVector += -cameraTransform.basis.z * inputMovementVector.y;
 		_lookingDirectionVector += cameraTransform.basis.x * inputMovementVector.x;
 		_lookingDirectionVector.y = 0;
 		_lookingDirectionVector = _lookingDirectionVector.Normalized();
-		
+
 		// If the player is on the floor, they can jump by pressing space
 		if (IsOnFloor())
 		{
@@ -177,7 +179,6 @@ public class Pilot : KinematicBody
 		_velocity.y += delta * -Gravity;
 		Move(_lookingDirectionVector, WalkAcceleration, WalkDeceleration, MaxWalkSpeed, delta);
 		_velocity = MoveAndSlide(_velocity, new Vector3(0, 1, 0), false, 4, Mathf.Deg2Rad(MaxSlopeAngle));
-
 	}
 
 	public override void _PhysicsProcess(float delta)
