@@ -3,6 +3,22 @@ using System;
 
 public class Pilot : KinematicBody
 {
+	private enum CollisionMode
+	{
+		Slide,
+		Snap,
+		Collide
+	}
+	
+	public enum MovementStateType
+	{
+		Walk,
+		Sprint,
+		Airborne,
+		Crouch,
+		Slide,
+	}
+	
 	private const float VerticalLookSensitivity = .2f;
 	private const float HorizontalLookSensitivity = .2f;
 	
@@ -26,8 +42,9 @@ public class Pilot : KinematicBody
 	private bool _sprint;
 	private bool _crouch;
 
-	private Vector3 _aimRotation = Vector3.Zero;
+	private Vector3 _lookingDirectionVector = Vector3.Zero;
 	private Vector3 _velocity = Vector3.Zero;
+	private MovementStateType _currentMovementState = MovementStateType.Walk;
 
 	private Camera _camera;
 	
@@ -46,10 +63,6 @@ public class Pilot : KinematicBody
 			rotation.x = Mathf.Clamp(rotation.x, -90, 90);
 			rotation.y -= motion.Relative.x * HorizontalLookSensitivity;
 			_camera.RotationDegrees = rotation;
-			_aimRotation = new Vector3(
-				Mathf.Deg2Rad(rotation.x),
-				Mathf.Deg2Rad(rotation.y),
-				Mathf.Deg2Rad(rotation.y));
 		}
 	}
 
@@ -63,6 +76,16 @@ public class Pilot : KinematicBody
 		_crouch = Input.IsActionPressed("crouch");
 		_sprint = Input.IsActionJustPressed("sprint");
 		_jump = Input.IsActionJustPressed("jump");
+		
+		// This code is not needed for player movement. It makes it easier for us exit the game since
+		// this code allows us to press Esc and release the mouse from the window. 
+		if (Input.IsActionJustPressed("ui_cancel"))
+		{
+			if (Input.GetMouseMode() == Input.MouseMode.Visible)
+				Input.SetMouseMode(Input.MouseMode.Captured);
+			else
+				Input.SetMouseMode(Input.MouseMode.Visible);
+		}
 	}
 
 	private void Accelerate(Vector3 acceleration, float maxSpeed, float delta)
@@ -88,14 +111,32 @@ public class Pilot : KinematicBody
 	{
 		
 	}
+
+	public void SetMovementState(MovementStateType movementState)
+	{
+		// Call the clear function for the movement state that is being changed from	
+		switch (_currentMovementState)
+		{
+			
+		}
+
+		_currentMovementState = movementState;
+
+		// Call the initialize function for the movement state that is being changed to
+		switch (_currentMovementState)
+		{
+			
+		}
+	}
 	
 	private void _ProcessMovement(float delta)
 	{
-		_aimRotation = new Vector3();
-		Transform cameraTransform = _camera.GlobalTransform;
+		// Clear the looking direction vector for each frame
+		_lookingDirectionVector = new Vector3();
 
 		Vector2 inputMovementVector = new Vector2();
 
+		// Based on the input booleans, we determine the walking direction using a unit vector
 		if (_forward)
 			inputMovementVector.y += 1;
 		if (_backward)
@@ -107,36 +148,38 @@ public class Pilot : KinematicBody
 
 		inputMovementVector = inputMovementVector.Normalized();
 
-		_aimRotation += -cameraTransform.basis.z * inputMovementVector.y;
-		_aimRotation += cameraTransform.basis.x * inputMovementVector.x;
-
+		// Using the camera transform that we change based on mouse movement, we combine that with
+		// the player's keyboard input to create an appropriate movement vector. 
+		
+		Transform cameraTransform = _camera.GlobalTransform;
+		
+		_lookingDirectionVector += -cameraTransform.basis.z * inputMovementVector.y;
+		_lookingDirectionVector += cameraTransform.basis.x * inputMovementVector.x;
+		_lookingDirectionVector.y = 0;
+		_lookingDirectionVector = _lookingDirectionVector.Normalized();
+		
+		// If the player is on the floor, they can jump by pressing space
 		if (IsOnFloor())
 		{
 			if (_jump)
 				_velocity.y = JumpSpeed;
 		}
-		
-		_aimRotation.y = 0;
-		_aimRotation = _aimRotation.Normalized();
 
+		// Simulate gravity by subtracting the velocity each frame
 		_velocity.y += delta * -Gravity;
 
-		Vector3 hvel = _velocity;
-		hvel.y = 0;
+		Vector3 hVel = _velocity;
+		hVel.y = 0;
 
-		Vector3 target = _aimRotation;
+		Vector3 target = _lookingDirectionVector;
 
 		target *= MaxWalkSpeed;
 
-		float accel;
-		if (_aimRotation.Dot(hvel) > 0)
-			accel = WalkAcceleration;
-		else
-			accel = WalkDeceleration;
+		float accel = _lookingDirectionVector.Dot(hVel) > 0 ? WalkAcceleration : WalkDeceleration;
 
-		hvel = hvel.LinearInterpolate(target, accel * delta);
-		_velocity.x = hvel.x;
-		_velocity.z = hvel.z;
+		hVel = hVel.LinearInterpolate(target, accel * delta);
+		_velocity.x = hVel.x;
+		_velocity.z = hVel.z;
 		_velocity = MoveAndSlide(_velocity, new Vector3(0, 1, 0), false, 4, Mathf.Deg2Rad(MaxSlopeAngle));
 
 	}
