@@ -101,7 +101,7 @@ public class Pilot : KinematicBody
 		_velocity += movement;
 	}
 	
-	private void Move(Vector3 direction, float acceleration, float deceleration, float maxSpeed, float delta)
+	private void Walk(Vector3 direction, float acceleration, float deceleration, float maxSpeed, float delta)
 	{
 		Vector3 hVel = _velocity;
 		hVel.y = 0;
@@ -175,7 +175,7 @@ public class Pilot : KinematicBody
 
 		// Simulate gravity by subtracting the y-velocity each frame
 		_velocity.y += delta * -Gravity;
-		Move(_lookingDirectionVector, WalkAcceleration, WalkDeceleration, MaxWalkSpeed, delta);
+		Walk(_lookingDirectionVector, WalkAcceleration, WalkDeceleration, MaxWalkSpeed, delta);
 		_velocity = MoveAndSlide(_velocity, new Vector3(0, 1, 0), false, 4, Mathf.Deg2Rad(MaxSlopeAngle));
 
 	}
