@@ -1,16 +1,15 @@
 [gd_scene load_steps=3 format=2]
 
 [ext_resource path="res://scenes/Pilot.tscn" type="PackedScene" id=1]
-
-[sub_resource type="BoxShape" id=1]
-extents = Vector3( 5.40165, 1, 7.27702 )
+[ext_resource path="res://Cube.tscn" type="PackedScene" id=2]
 
 [node name="Main" type="Spatial"]
 
-[node name="Ground" type="StaticBody" parent="."]
-
-[node name="CollisionShape" type="CollisionShape" parent="Ground"]
-shape = SubResource( 1 )
+[node name="Cube" parent="." instance=ExtResource( 2 )]
+transform = Transform( 16.7743, 0, 0, 0, 1, 0, 0, 0, 24.2647, 0, 0, 0 )
 
 [node name="Pilot" parent="." instance=ExtResource( 1 )]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0.289456, 2.31078, -1.1835 )
+
+[node name="DirectionalLight" type="DirectionalLight" parent="."]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 151.364, 0 )

@@ -6,6 +6,10 @@ public class Pilot : KinematicBody
 	private const float VerticalLookSensitivity = .2f;
 	private const float HorizontalLookSensitivity = .2f;
 	
+	private const float Gravity = .98f;
+	private const float WalkSpeed = 15f;
+	private const float SprintSpeed = 20f;
+	
 	private bool _left;
 	private bool _right;
 	private bool _forward;
@@ -33,7 +37,10 @@ public class Pilot : KinematicBody
 			rotation.x = Mathf.Clamp(rotation.x, -90, 90);
 			rotation.y -= motion.Relative.x * HorizontalLookSensitivity;
 			_cameraBase.RotationDegrees = rotation;
-			_aimRotation = rotation;
+			_aimRotation = new Vector3(
+				Mathf.Deg2Rad(rotation.x),
+				Mathf.Deg2Rad(rotation.y),
+				Mathf.Deg2Rad(rotation.y));
 		}
 	}
 
@@ -59,9 +66,11 @@ public class Pilot : KinematicBody
 		if (_backward) moveDir.z += 1;
 		
 		moveDir = moveDir.Normalized();
-		moveDir = moveDir.Rotated(Vector3.Up, Mathf.Deg2Rad(_aimRotation.y));
+		moveDir = moveDir.Rotated(Vector3.Up, _aimRotation.y);
 
-		MoveAndSlide(moveDir, Vector3.Up);
+		var movement= moveDir * WalkSpeed;
+		movement.y = -Gravity;
+		MoveAndSlide(movement, Vector3.Up);
 
 	}
 
