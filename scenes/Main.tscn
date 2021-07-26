@@ -4,6 +4,7 @@
 [ext_resource path="res://Cube.tscn" type="PackedScene" id=2]
 
 [node name="Main" type="Spatial"]
+transform = Transform( 0.999995, 0.00240935, 0.00209139, -0.00240426, 0.999994, -0.00243876, -0.00209725, 0.00243373, 0.999995, 0, 0, 0 )
 
 [node name="Cube" parent="." instance=ExtResource( 2 )]
 transform = Transform( 16.7743, 0, 0, 0, 1, 0, 0, 0, 24.2647, 0, 0, 0 )
@@ -11,5 +12,9 @@ transform = Transform( 16.7743, 0, 0, 0, 1, 0, 0, 0, 24.2647, 0, 0, 0 )
 [node name="Pilot" parent="." instance=ExtResource( 1 )]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0.289456, 2.31078, -1.1835 )
 
-[node name="DirectionalLight" type="DirectionalLight" parent="."]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 151.364, 0 )
+[node name="SpotLight" type="SpotLight" parent="."]
+transform = Transform( 1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 14.3708, 0 )
+spot_range = 18.8613
+
+[node name="Cube2" parent="." instance=ExtResource( 2 )]
+transform = Transform( 1, 2.01453e-10, -9.31323e-10, -3.63798e-12, 1, 4.65661e-10, -9.31323e-10, -9.31323e-10, 1, 6.68395, 2.04171, -0.441729 )
