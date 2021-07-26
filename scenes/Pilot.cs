@@ -21,13 +21,13 @@ public class Pilot : KinematicBody
 	private const float VerticalLookSensitivity = .2f;
 	private const float HorizontalLookSensitivity = .2f;
 
-	private const float Gravity = 24.8f;
+	private const float Gravity = 20f;
 
-	private const float MaxWalkSpeed = 20f;
-	private const float WalkAcceleration = 4.5f;
+	private const float MaxWalkSpeed = 5f;
+	private const float WalkAcceleration = 5f;
 	private const float WalkDeceleration = 16f;
 
-	private const float MaxSprintSpeed = 30f;
+	private const float MaxSprintSpeed = 20f;
 	private const float SprintAcceleration = 8f;
 	private const float SprintDeceleration = 16f;
 
@@ -92,21 +92,12 @@ public class Pilot : KinematicBody
 		}
 	}
 
-	private void Accelerate(Vector3 acceleration, float maxSpeed, float delta)
+	private bool IsHoldingMovementKey()
 	{
-		var movement = acceleration * delta;
-		var length = (_velocity + movement).Length();
-		if (length > maxSpeed)
-		{
-			movement = (length - maxSpeed) * delta * acceleration.Normalized();
-			if (movement.Length() > maxSpeed)
-				movement = Vector3.Zero;
-		}
-
-		_velocity += movement;
+		return _forward || _backward || _right || _left;
 	}
-
-	private void Move(Vector3 direction, float acceleration, float deceleration, float maxSpeed, float delta)
+	
+	private void Move(Vector3 direction, float acceleration, float deceleration, float maxSpeed, float delta, float turnPenaltyFactor = 1f)
 	{
 		Vector3 hVel = _velocity;
 		hVel.y = 0;
@@ -115,13 +106,9 @@ public class Pilot : KinematicBody
 
 		float accel = _lookingDirectionVector.Dot(hVel) > 0 ? acceleration : deceleration;
 
-		hVel = hVel.LinearInterpolate(direction, accel * delta);
+		hVel = hVel.LinearInterpolate(direction, accel * delta * turnPenaltyFactor);
 		_velocity.x = hVel.x;
 		_velocity.z = hVel.z;
-	}
-
-	private void ApplyGroundFriction(float factor)
-	{
 	}
 
 	public void SetMovementState(MovementStateType movementState)
@@ -129,6 +116,16 @@ public class Pilot : KinematicBody
 		// Call the clear function for the movement state that is being changed from	
 		switch (_currentMovementState)
 		{
+			case MovementStateType.WalkOrSprint:
+				ClearWalkOrSprintMode();
+				break;
+			case MovementStateType.Airborne:
+				ClearAirborneMode();
+				break;
+			case MovementStateType.Crouch:
+				break;
+			case MovementStateType.Slide:
+				break;
 		}
 
 		_currentMovementState = movementState;
@@ -136,7 +133,55 @@ public class Pilot : KinematicBody
 		// Call the initialize function for the movement state that is being changed to
 		switch (_currentMovementState)
 		{
+			case MovementStateType.WalkOrSprint:
+				InitializeWalkOrSprintMode();
+				break;
+			case MovementStateType.Airborne:
+				InitializeAirborneMode();
+				break;
+			case MovementStateType.Crouch:
+				break;
+			case MovementStateType.Slide:
+				break;
 		}
+	}
+
+	private void InitializeWalkOrSprintMode()
+	{
+		
+	}
+	
+	private void ClearWalkOrSprintMode()
+	{
+		
+	}
+
+	private void ProcessWalkOrSprintMode(float delta)
+	{
+		Move(_lookingDirectionVector, WalkAcceleration, WalkDeceleration, MaxWalkSpeed, delta);
+		
+		// If the player is on the floor, they can jump by pressing space
+		if (IsOnFloor())
+		{
+			if (_jump)
+				_velocity.y = JumpSpeed;
+		}
+	}
+	
+	private void InitializeAirborneMode()
+	{
+		
+	}
+	
+	private void ClearAirborneMode()
+	{
+		
+	}
+	
+	private void ProcessAirborneMode(float delta)
+	{
+		if (IsHoldingMovementKey())
+			Move(_lookingDirectionVector, WalkAcceleration, WalkDeceleration, MaxWalkSpeed, delta, 0.2f);
 	}
 
 	private void _ProcessMovement(float delta)
@@ -168,17 +213,33 @@ public class Pilot : KinematicBody
 		_lookingDirectionVector.y = 0;
 		_lookingDirectionVector = _lookingDirectionVector.Normalized();
 
-		// If the player is on the floor, they can jump by pressing space
-		if (IsOnFloor())
-		{
-			if (_jump)
-				_velocity.y = JumpSpeed;
-		}
-
 		// Simulate gravity by subtracting the y-velocity each frame
 		_velocity.y += delta * -Gravity;
-		Move(_lookingDirectionVector, WalkAcceleration, WalkDeceleration, MaxWalkSpeed, delta);
-		_velocity = MoveAndSlide(_velocity, new Vector3(0, 1, 0), false, 4, Mathf.Deg2Rad(MaxSlopeAngle));
+
+		if (!IsOnFloor())
+		{
+			SetMovementState(MovementStateType.Airborne);
+		}
+		else
+		{
+			SetMovementState(MovementStateType.WalkOrSprint);
+		}
+
+		switch (_currentMovementState)
+		{
+			case MovementStateType.WalkOrSprint:
+				ProcessWalkOrSprintMode(delta);
+				break;
+			case MovementStateType.Airborne:
+				ProcessAirborneMode(delta);
+				break;
+			case MovementStateType.Crouch:
+				break;
+			case MovementStateType.Slide:
+				break;
+		}
+		
+		_velocity = MoveAndSlide(_velocity, Vector3.Up, false, 4, Mathf.Deg2Rad(MaxSlopeAngle));
 	}
 
 	public override void _PhysicsProcess(float delta)
