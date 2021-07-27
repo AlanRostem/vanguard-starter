@@ -33,7 +33,7 @@ public class Pilot : KinematicBody
 
 	private const float JumpSpeed = 12f;
 
-	private const float WalkFrictionGround = 0.95f;
+	private const float WalkFrictionGround = 2f;
 	private const float SlideFrictionGround = 0.2f;
 
 	private const float MaxSlopeAngle = 40f;
@@ -45,6 +45,8 @@ public class Pilot : KinematicBody
 	private bool _jump;
 	private bool _sprint;
 	private bool _crouch;
+
+	private bool _isSprinting = false;
 
 	private Vector3 _lookingDirectionVector = Vector3.Zero;
 	public Vector3 Velocity = Vector3.Zero;
@@ -173,9 +175,20 @@ public class Pilot : KinematicBody
 
 	private void ProcessWalkOrSprintMode(float delta)
 	{
+		if (_sprint) _isSprinting = true;
+		else if (!IsHoldingMovementKey()) _isSprinting = false;
+		
 		// Move(_lookingDirectionVector, WalkAcceleration, WalkDeceleration, MaxWalkSpeed, delta);
 		ApplyHorizontalFriction(WalkFrictionGround, delta);
-		QuakeMove(_lookingDirectionVector, WalkAcceleration, MaxWalkSpeed, delta);
+
+		if (_isSprinting)
+		{
+			QuakeMove(_lookingDirectionVector, SprintAcceleration, MaxSprintSpeed, delta);
+		}
+		else
+		{
+			QuakeMove(_lookingDirectionVector, WalkAcceleration, MaxWalkSpeed, delta);
+		}
 		
 		// If the player is on the floor, they can jump by pressing space
 		if (IsOnFloor())
