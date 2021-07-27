@@ -24,7 +24,7 @@ public class Pilot : KinematicBody
 	private const float Gravity = 20f;
 
 	private const float MaxWalkSpeed = 5f;
-	private const float WalkAcceleration = 5f;
+	private const float WalkAcceleration = 15f;
 	private const float WalkDeceleration = 16f;
 
 	private const float MaxSprintSpeed = 20f;
@@ -47,7 +47,7 @@ public class Pilot : KinematicBody
 	private bool _crouch;
 
 	private Vector3 _lookingDirectionVector = Vector3.Zero;
-	private Vector3 _velocity = Vector3.Zero;
+	public Vector3 Velocity = Vector3.Zero;
 	private MovementStateType _currentMovementState = MovementStateType.WalkOrSprint;
 
 	private Camera _camera;
@@ -99,7 +99,7 @@ public class Pilot : KinematicBody
 	
 	private void Move(Vector3 direction, float acceleration, float deceleration, float maxSpeed, float delta, float turnPenaltyFactor = 1f)
 	{
-		Vector3 hVel = _velocity;
+		Vector3 hVel = Velocity;
 		hVel.y = 0;
 
 		direction *= maxSpeed;
@@ -107,8 +107,21 @@ public class Pilot : KinematicBody
 		float accel = _lookingDirectionVector.Dot(hVel) > 0 ? acceleration : deceleration;
 
 		hVel = hVel.LinearInterpolate(direction, accel * delta * turnPenaltyFactor);
-		_velocity.x = hVel.x;
-		_velocity.z = hVel.z;
+		Velocity.x = hVel.x;
+		Velocity.z = hVel.z;
+	}
+
+	private void QuakeMove(Vector3 intendedDirection, float acceleration, float maxSpeed, float delta)
+	{
+		var currentSpeed = Velocity.Dot(intendedDirection);
+		var addedSpeed = Mathf.Clamp(maxSpeed - currentSpeed, 0, acceleration * delta);
+		Velocity += addedSpeed * intendedDirection;
+	}
+
+	private void ApplyHorizontalFriction(float coefficient)
+	{
+		Velocity.x = Mathf.Lerp(Velocity.x, 0, coefficient);
+		Velocity.z = Mathf.Lerp(Velocity.z, 0, coefficient);
 	}
 
 	public void SetMovementState(MovementStateType movementState)
@@ -158,13 +171,18 @@ public class Pilot : KinematicBody
 
 	private void ProcessWalkOrSprintMode(float delta)
 	{
-		Move(_lookingDirectionVector, WalkAcceleration, WalkDeceleration, MaxWalkSpeed, delta);
+		// Move(_lookingDirectionVector, WalkAcceleration, WalkDeceleration, MaxWalkSpeed, delta);
+		QuakeMove(_lookingDirectionVector, WalkAcceleration, MaxWalkSpeed, delta);
+		if (!IsHoldingMovementKey())
+		{
+			ApplyHorizontalFriction(WalkFrictionGround);
+		}
 		
 		// If the player is on the floor, they can jump by pressing space
 		if (IsOnFloor())
 		{
 			if (_jump)
-				_velocity.y = JumpSpeed;
+				Velocity.y = JumpSpeed;
 		}
 	}
 	
@@ -180,8 +198,9 @@ public class Pilot : KinematicBody
 	
 	private void ProcessAirborneMode(float delta)
 	{
-		if (IsHoldingMovementKey())
-			Move(_lookingDirectionVector, WalkAcceleration, WalkDeceleration, MaxWalkSpeed, delta, 0.2f);
+		//if (IsHoldingMovementKey())
+			//Move(_lookingDirectionVector, WalkAcceleration, WalkDeceleration, MaxWalkSpeed, delta, 0.2f);
+		QuakeMove(_lookingDirectionVector, WalkAcceleration, MaxWalkSpeed, delta);
 	}
 
 	private void _ProcessMovement(float delta)
@@ -214,7 +233,7 @@ public class Pilot : KinematicBody
 		_lookingDirectionVector = _lookingDirectionVector.Normalized();
 
 		// Simulate gravity by subtracting the y-velocity each frame
-		_velocity.y += delta * -Gravity;
+		Velocity.y += delta * -Gravity;
 
 		if (!IsOnFloor())
 		{
@@ -239,7 +258,7 @@ public class Pilot : KinematicBody
 				break;
 		}
 		
-		_velocity = MoveAndSlide(_velocity, Vector3.Up, false, 4, Mathf.Deg2Rad(MaxSlopeAngle));
+		Velocity = MoveAndSlide(Velocity, Vector3.Up, false, 4, Mathf.Deg2Rad(MaxSlopeAngle));
 	}
 
 	public override void _PhysicsProcess(float delta)
