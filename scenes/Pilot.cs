@@ -18,20 +18,22 @@ public class Pilot : KinematicBody
 		Slide,
 	}
 
-	private const float VerticalLookSensitivity = .2f;
-	private const float HorizontalLookSensitivity = .2f;
+	private const float VerticalLookSensitivity = .05f;
+	private const float HorizontalLookSensitivity = .05f;
 
 	private const float Gravity = 20f;
 
 	private const float MaxWalkSpeed = 4.2f;
 	private const float WalkAcceleration = 18f;
 	private const float WalkDeceleration = 22f;
+	
+	private const float AirAcceleration = 1f;
 
 	private const float MaxSprintSpeed = 6.1f;
-	private const float SprintAcceleration = 2f;
-	private const float SprintDeceleration = 2f;
+	private const float SprintAcceleration = 18f;
+	private const float SprintDeceleration = 22f;
 
-	private const float JumpSpeed = 12f;
+	private const float JumpSpeed = 8f;
 
 	private const float WalkFrictionGround = 2f;
 	private const float SlideFrictionGround = 0.2f;
@@ -53,6 +55,8 @@ public class Pilot : KinematicBody
 	private MovementStateType _currentMovementState = MovementStateType.WalkOrSprint;
 
 	private Camera _camera;
+
+	public Vector2 HorizontalVelocity => new Vector2(Velocity.x, Velocity.z);
 
 	public override void _Ready()
 	{
@@ -113,6 +117,14 @@ public class Pilot : KinematicBody
 		Velocity.z = hVel.z;
 	}
 
+	/// <summary>
+	/// The Quake engine implementation of movement. This will only be used while mid-air to allow
+	/// air-strafing and tap-strafing.
+	/// </summary>
+	/// <param name="intendedDirection">The input movement vector from the player</param>
+	/// <param name="acceleration">Desired acceleration</param>
+	/// <param name="maxSpeed">Desired maximum speed so the player does not constantly increase speed</param>
+	/// <param name="delta">Delta time between each frame (in seconds)</param>
 	private void QuakeMove(Vector3 intendedDirection, float acceleration, float maxSpeed, float delta)
 	{
 		var currentSpeed = Velocity.Dot(intendedDirection);
@@ -179,14 +191,16 @@ public class Pilot : KinematicBody
 		else if (!IsHoldingMovementKey()) _isSprinting = false;
 		
 		//if (!IsHoldingMovementKey())
-		//	ApplyHorizontalFriction(WalkFrictionGround, delta);
+		ApplyHorizontalFriction(WalkFrictionGround, delta);
 
 		if (_isSprinting)
 		{
+			// QuakeMove(_lookingDirectionVector, SprintAcceleration, MaxSprintSpeed, delta);
 			Move(_lookingDirectionVector, SprintAcceleration, SprintDeceleration, MaxSprintSpeed, delta);
 		}
 		else
 		{
+			// QuakeMove(_lookingDirectionVector, WalkAcceleration, MaxWalkSpeed, delta);
 			Move(_lookingDirectionVector, WalkAcceleration, WalkDeceleration, MaxWalkSpeed, delta);
 		}
 		
@@ -212,7 +226,15 @@ public class Pilot : KinematicBody
 	{
 		//if (IsHoldingMovementKey())
 			//Move(_lookingDirectionVector, WalkAcceleration, WalkDeceleration, MaxWalkSpeed, delta, 0.2f);
-		QuakeMove(_lookingDirectionVector, WalkAcceleration, MaxWalkSpeed, delta);
+		if (!_forward && !IsMovingTooFast(MaxSprintSpeed))
+			QuakeMove(_lookingDirectionVector, WalkAcceleration, MaxWalkSpeed, delta);
+		else QuakeMove(_lookingDirectionVector, AirAcceleration, MaxWalkSpeed, delta);
+	}
+
+	private bool IsMovingTooFast(float maxSpeed)
+	{
+		const float margin = 0.1f;
+		return HorizontalVelocity.Length() >= maxSpeed + margin;
 	}
 
 	private void _ProcessMovement(float delta)
