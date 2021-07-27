@@ -23,13 +23,13 @@ public class Pilot : KinematicBody
 
 	private const float Gravity = 20f;
 
-	private const float MaxWalkSpeed = 5f;
-	private const float WalkAcceleration = 15f;
-	private const float WalkDeceleration = 16f;
+	private const float MaxWalkSpeed = 4.2f;
+	private const float WalkAcceleration = 18f;
+	private const float WalkDeceleration = 22f;
 
-	private const float MaxSprintSpeed = 20f;
-	private const float SprintAcceleration = 8f;
-	private const float SprintDeceleration = 16f;
+	private const float MaxSprintSpeed = 6.1f;
+	private const float SprintAcceleration = 2f;
+	private const float SprintDeceleration = 2f;
 
 	private const float JumpSpeed = 12f;
 
@@ -81,7 +81,7 @@ public class Pilot : KinematicBody
 
 		_crouch = Input.IsActionPressed("crouch");
 		_sprint = Input.IsActionJustPressed("sprint");
-		_jump = Input.IsActionJustPressed("jump");
+		_jump = Input.IsActionPressed("jump");
 
 		// This code is not needed for player movement. It makes it easier for us exit the game since
 		// this code allows us to press Esc and release the mouse from the window. 
@@ -178,16 +178,16 @@ public class Pilot : KinematicBody
 		if (_sprint) _isSprinting = true;
 		else if (!IsHoldingMovementKey()) _isSprinting = false;
 		
-		// Move(_lookingDirectionVector, WalkAcceleration, WalkDeceleration, MaxWalkSpeed, delta);
-		ApplyHorizontalFriction(WalkFrictionGround, delta);
+		//if (!IsHoldingMovementKey())
+		//	ApplyHorizontalFriction(WalkFrictionGround, delta);
 
 		if (_isSprinting)
 		{
-			QuakeMove(_lookingDirectionVector, SprintAcceleration, MaxSprintSpeed, delta);
+			Move(_lookingDirectionVector, SprintAcceleration, SprintDeceleration, MaxSprintSpeed, delta);
 		}
 		else
 		{
-			QuakeMove(_lookingDirectionVector, WalkAcceleration, MaxWalkSpeed, delta);
+			Move(_lookingDirectionVector, WalkAcceleration, WalkDeceleration, MaxWalkSpeed, delta);
 		}
 		
 		// If the player is on the floor, they can jump by pressing space

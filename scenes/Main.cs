@@ -14,6 +14,6 @@ public class Main : Spatial
 	public override void _Process(float delta)
 	{
 		var hVel = new Vector2(_pilot.Velocity.x, _pilot.Velocity.z);
-		_speedLabel.Text = hVel.Length() + " m/s";
+		_speedLabel.Text = hVel.Length() * 3.6f + " km/h";
 	}
 }
