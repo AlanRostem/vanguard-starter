@@ -118,10 +118,12 @@ public class Pilot : KinematicBody
 		Velocity += addedSpeed * intendedDirection;
 	}
 
-	private void ApplyHorizontalFriction(float coefficient)
+	private void ApplyHorizontalFriction(float coefficient, float delta)
 	{
-		Velocity.x = Mathf.Lerp(Velocity.x, 0, coefficient);
-		Velocity.z = Mathf.Lerp(Velocity.z, 0, coefficient);
+		var speed = Velocity.Length();
+		if (!(speed > 0)) return;
+		var drop = speed * coefficient * delta;
+		Velocity *= Mathf.Max(speed - drop, 0) / speed;
 	}
 
 	public void SetMovementState(MovementStateType movementState)
@@ -172,11 +174,8 @@ public class Pilot : KinematicBody
 	private void ProcessWalkOrSprintMode(float delta)
 	{
 		// Move(_lookingDirectionVector, WalkAcceleration, WalkDeceleration, MaxWalkSpeed, delta);
+		ApplyHorizontalFriction(WalkFrictionGround, delta);
 		QuakeMove(_lookingDirectionVector, WalkAcceleration, MaxWalkSpeed, delta);
-		if (!IsHoldingMovementKey())
-		{
-			ApplyHorizontalFriction(WalkFrictionGround);
-		}
 		
 		// If the player is on the floor, they can jump by pressing space
 		if (IsOnFloor())
