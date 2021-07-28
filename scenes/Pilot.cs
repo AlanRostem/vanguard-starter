@@ -21,19 +21,20 @@ public class Pilot : KinematicBody
 	private const float VerticalLookSensitivity = .05f;
 	private const float HorizontalLookSensitivity = .05f;
 
-	private const float Gravity = 20f;
+	private const float Gravity = 14f;
 
 	private const float MaxWalkSpeed = 4.2f;
 	private const float WalkAcceleration = 18f;
-	private const float WalkDeceleration = 22f;
+	private const float WalkDeceleration = 10f;
 	
-	private const float AirAcceleration = 1f;
+	private const float ForwardPressAirAcceleration = 2f;
+	private const float AirStrafeAcceleration = 12f;
 
 	private const float MaxSprintSpeed = 6.1f;
 	private const float SprintAcceleration = 18f;
 	private const float SprintDeceleration = 22f;
 
-	private const float JumpSpeed = 8f;
+	private const float JumpSpeed = 7f;
 
 	private const float WalkFrictionGround = 2f;
 	private const float SlideFrictionGround = 0.2f;
@@ -191,7 +192,7 @@ public class Pilot : KinematicBody
 		else if (!IsHoldingMovementKey()) _isSprinting = false;
 		
 		//if (!IsHoldingMovementKey())
-		ApplyHorizontalFriction(WalkFrictionGround, delta);
+		// ApplyHorizontalFriction(WalkFrictionGround, delta);
 
 		if (_isSprinting)
 		{
@@ -224,11 +225,9 @@ public class Pilot : KinematicBody
 	
 	private void ProcessAirborneMode(float delta)
 	{
-		//if (IsHoldingMovementKey())
-			//Move(_lookingDirectionVector, WalkAcceleration, WalkDeceleration, MaxWalkSpeed, delta, 0.2f);
-		if (!_forward && !IsMovingTooFast(MaxSprintSpeed))
-			QuakeMove(_lookingDirectionVector, WalkAcceleration, MaxWalkSpeed, delta);
-		else QuakeMove(_lookingDirectionVector, AirAcceleration, MaxWalkSpeed, delta);
+		if (_forward || _backward)
+			QuakeMove(_lookingDirectionVector, ForwardPressAirAcceleration, MaxWalkSpeed, delta);
+		else QuakeMove(_lookingDirectionVector, AirStrafeAcceleration, MaxWalkSpeed, delta);
 	}
 
 	private bool IsMovingTooFast(float maxSpeed)
