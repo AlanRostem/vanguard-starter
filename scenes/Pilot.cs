@@ -12,9 +12,8 @@ public class Pilot : KinematicBody
 
 	public enum MovementStateType
 	{
-		WalkOrSprint,
+		BootsOnGround,
 		Airborne,
-		Crouch,
 		Slide,
 	}
 
@@ -23,6 +22,10 @@ public class Pilot : KinematicBody
 
 	private const float Gravity = 14f;
 
+	private const float MaxCrouchSpeed = 1.2f;
+	private const float CrouchAcceleration = 18f;
+	private const float CrouchDeceleration = 26f;
+	
 	private const float MaxWalkSpeed = 4.2f;
 	private const float WalkAcceleration = 18f;
 	private const float WalkDeceleration = 10f;
@@ -39,7 +42,8 @@ public class Pilot : KinematicBody
 	private const float WalkFrictionGround = 2f;
 	private const float SlideFrictionGround = 0.2f;
 
-	private const float MaxSlopeAngle = 40f;
+	private const float StandHeight = 1.8f;
+	private const float CrouchHeight = 0.9f;
 
 	private bool _left;
 	private bool _right;
@@ -50,20 +54,24 @@ public class Pilot : KinematicBody
 	private bool _crouch;
 
 	private bool _isSprinting = false;
+	private bool _isCrouching = false;
 
 	private Vector3 _lookingDirectionVector = Vector3.Zero;
 	private Vector3 _snapVector = Vector3.Zero;
 	public Vector3 Velocity = Vector3.Zero;
 	private MovementStateType _currentMovementState = MovementStateType.Airborne;
 
-	private Camera _camera;
 	private CollisionMode _currentCollisionMode = CollisionMode.Snap;
 
 	public Vector2 HorizontalVelocity => new Vector2(Velocity.x, Velocity.z);
 
+	private Camera _camera;
+	private CollisionShape _bodyShape;
+
 	public override void _Ready()
 	{
 		_camera = GetNode<Camera>("Camera");
+		_bodyShape = GetNode<CollisionShape>("CollisionShape");
 		Input.SetMouseMode(Input.MouseMode.Captured);
 	}
 
@@ -145,16 +153,16 @@ public class Pilot : KinematicBody
 
 	public void SetMovementState(MovementStateType movementState)
 	{
+		if (_currentMovementState == movementState) return;
+		
 		// Call the clear function for the movement state that is being changed from	
 		switch (_currentMovementState)
 		{
-			case MovementStateType.WalkOrSprint:
+			case MovementStateType.BootsOnGround:
 				ClearWalkOrSprintMode();
 				break;
 			case MovementStateType.Airborne:
 				ClearAirborneMode();
-				break;
-			case MovementStateType.Crouch:
 				break;
 			case MovementStateType.Slide:
 				break;
@@ -165,13 +173,11 @@ public class Pilot : KinematicBody
 		// Call the initialize function for the movement state that is being changed to
 		switch (_currentMovementState)
 		{
-			case MovementStateType.WalkOrSprint:
+			case MovementStateType.BootsOnGround:
 				InitializeWalkOrSprintMode();
 				break;
 			case MovementStateType.Airborne:
 				InitializeAirborneMode();
-				break;
-			case MovementStateType.Crouch:
 				break;
 			case MovementStateType.Slide:
 				break;
@@ -200,11 +206,37 @@ public class Pilot : KinematicBody
 		{
 			// QuakeMove(_lookingDirectionVector, SprintAcceleration, MaxSprintSpeed, delta);
 			Move(_lookingDirectionVector, SprintAcceleration, SprintDeceleration, MaxSprintSpeed, delta);
+			if (_isCrouching)
+			{
+				Stand();
+				_isCrouching = false;
+			}
+			else if (_crouch)
+			{
+				// TODO: Change to slide mode
+			}
 		}
 		else
 		{
 			// QuakeMove(_lookingDirectionVector, WalkAcceleration, MaxWalkSpeed, delta);
-			Move(_lookingDirectionVector, WalkAcceleration, WalkDeceleration, MaxWalkSpeed, delta);
+			if (_crouch)
+			{
+				Move(_lookingDirectionVector, CrouchAcceleration, CrouchDeceleration, MaxCrouchSpeed, delta);
+				if (!_isCrouching)
+				{
+					Crouch();
+					_isCrouching = true;
+				}
+			}
+			else
+			{
+				if (_isCrouching)
+				{
+					Stand();
+					_isCrouching = false;
+				}
+				Move(_lookingDirectionVector, WalkAcceleration, WalkDeceleration, MaxWalkSpeed, delta);
+			}
 		}
 		
 		// If the player is on the floor, they can jump by pressing space
@@ -212,8 +244,7 @@ public class Pilot : KinematicBody
 		{
 			if (_jump)
 			{
-				Velocity.y = JumpSpeed;
-				_snapVector = Vector3.Zero;
+				Jump();
 			}
 		}
 	}
@@ -233,6 +264,35 @@ public class Pilot : KinematicBody
 		if (_forward || _backward)
 			QuakeMove(_lookingDirectionVector, ForwardPressAirAcceleration, MaxWalkSpeed, delta);
 		else QuakeMove(_lookingDirectionVector, AirStrafeAcceleration, MaxWalkSpeed, delta);
+
+		if (_crouch)
+		{
+			if (!_isCrouching)
+			{
+				Crouch();
+				_isCrouching = true;
+			}
+		}
+		else if (_isCrouching)
+		{
+			Stand();
+			_isCrouching = false;
+		}
+	}
+	
+	private void InitializeSlideMode()
+	{
+		
+	}
+	
+	private void ClearSlideMode()
+	{
+		
+	}
+
+	private void ProcessSlideMode(float delta)
+	{
+		
 	}
 
 	private bool IsMovingTooFast(float maxSpeed)
@@ -241,6 +301,28 @@ public class Pilot : KinematicBody
 		return HorizontalVelocity.Length() >= maxSpeed + margin;
 	}
 
+	private void Crouch()
+	{
+		// var shape = _bodyShape.Shape;
+		// shape.SetDeferred("height", CrouchHeight);
+		// _bodyShape.SetDeferred("translation", _bodyShape.Translation + new Vector3(0, -CrouchHeight, 0));
+		_camera.SetDeferred("translation", _camera.Translation + new Vector3(0, -CrouchHeight, 0));
+	}
+
+	private void Stand()
+	{
+		// var shape = _bodyShape.Shape;
+		// shape.SetDeferred("height", StandHeight);
+		// _bodyShape.SetDeferred("translation", _bodyShape.Translation + new Vector3(0, CrouchHeight, 0));
+		_camera.SetDeferred("translation", _camera.Translation + new Vector3(0, CrouchHeight, 0));
+	}
+
+	private void Jump()
+	{
+		Velocity.y = JumpSpeed;
+		_snapVector = Vector3.Zero;
+	}
+	
 	private void _ProcessMovement(float delta)
 	{
 		// Clear the looking direction vector for each frame
@@ -277,25 +359,31 @@ public class Pilot : KinematicBody
 		{
 			SetMovementState(MovementStateType.Airborne);
 		}
-		else
+		else 
 		{
-			SetMovementState(MovementStateType.WalkOrSprint);
+			if (IsMovingTooFast(MaxSprintSpeed) && _isCrouching)
+			{
+				SetMovementState(MovementStateType.Slide);
+			}
+			else
+			{
+				SetMovementState(MovementStateType.BootsOnGround);
+			}
 		}
 
 		switch (_currentMovementState)
 		{
-			case MovementStateType.WalkOrSprint:
+			case MovementStateType.BootsOnGround:
 				ProcessWalkOrSprintMode(delta);
 				break;
 			case MovementStateType.Airborne:
 				ProcessAirborneMode(delta);
 				break;
-			case MovementStateType.Crouch:
-				break;
 			case MovementStateType.Slide:
+				ProcessSlideMode(delta);
 				break;
 		}
-
+		
 		switch (_currentCollisionMode)
 		{
 			case CollisionMode.Slide:
