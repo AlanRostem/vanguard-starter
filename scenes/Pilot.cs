@@ -7,7 +7,7 @@ public class Pilot : KinematicBody
 	{
 		Slide,
 		Snap,
-		Collide
+		// Collide
 	}
 
 	public enum MovementStateType
@@ -28,7 +28,7 @@ public class Pilot : KinematicBody
 	private const float WalkDeceleration = 10f;
 	
 	private const float ForwardPressAirAcceleration = 2f;
-	private const float AirStrafeAcceleration = 12f;
+	private const float AirStrafeAcceleration = 14f;
 
 	private const float MaxSprintSpeed = 6.1f;
 	private const float SprintAcceleration = 18f;
@@ -52,10 +52,12 @@ public class Pilot : KinematicBody
 	private bool _isSprinting = false;
 
 	private Vector3 _lookingDirectionVector = Vector3.Zero;
+	private Vector3 _snapVector = Vector3.Zero;
 	public Vector3 Velocity = Vector3.Zero;
-	private MovementStateType _currentMovementState = MovementStateType.WalkOrSprint;
+	private MovementStateType _currentMovementState = MovementStateType.Airborne;
 
 	private Camera _camera;
+	private CollisionMode _currentCollisionMode = CollisionMode.Snap;
 
 	public Vector2 HorizontalVelocity => new Vector2(Velocity.x, Velocity.z);
 
@@ -209,7 +211,10 @@ public class Pilot : KinematicBody
 		if (IsOnFloor())
 		{
 			if (_jump)
+			{
 				Velocity.y = JumpSpeed;
+				_snapVector = Vector3.Zero;
+			}
 		}
 	}
 	
@@ -290,8 +295,17 @@ public class Pilot : KinematicBody
 			case MovementStateType.Slide:
 				break;
 		}
+
+		switch (_currentCollisionMode)
+		{
+			case CollisionMode.Slide:
+				Velocity = MoveAndSlide(Velocity, Vector3.Up,  true);
+				break;
+			case CollisionMode.Snap:
+				Velocity.y = MoveAndSlideWithSnap(Velocity, _snapVector, Vector3.Up,  true).y;
+				break;
+		}
 		
-		Velocity = MoveAndSlide(Velocity, Vector3.Up, false, 4, Mathf.Deg2Rad(MaxSlopeAngle));
 	}
 
 	public override void _PhysicsProcess(float delta)
