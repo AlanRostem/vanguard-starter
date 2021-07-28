@@ -30,6 +30,9 @@ public class Pilot : KinematicBody
 	private const float WalkAcceleration = 18f;
 	private const float WalkDeceleration = 10f;
 	
+	private const float MaxSlideSpeed = 8.9f;
+	private const float SlideAcceleration = 22f;
+	
 	private const float ForwardPressAirAcceleration = 2f;
 	private const float AirStrafeAcceleration = 14f;
 
@@ -40,7 +43,7 @@ public class Pilot : KinematicBody
 	private const float JumpSpeed = 7f;
 
 	private const float WalkFrictionGround = 2f;
-	private const float SlideFrictionGround = 0.2f;
+	private const float SlideFrictionGround = 0.8f;
 
 	private const float StandHeight = 1.8f;
 	private const float CrouchHeight = 0.9f;
@@ -213,7 +216,12 @@ public class Pilot : KinematicBody
 			}
 			else if (_crouch)
 			{
-				// TODO: Change to slide mode
+				if (!_isCrouching)
+				{
+					Crouch();
+					_isCrouching = true;
+				}
+				SetMovementState(MovementStateType.Slide);
 			}
 		}
 		else
@@ -240,13 +248,8 @@ public class Pilot : KinematicBody
 		}
 		
 		// If the player is on the floor, they can jump by pressing space
-		if (IsOnFloor())
-		{
-			if (_jump)
-			{
-				Jump();
-			}
-		}
+		if (_jump && IsOnFloor())
+			Jump();
 	}
 	
 	private void InitializeAirborneMode()
@@ -278,11 +281,25 @@ public class Pilot : KinematicBody
 			Stand();
 			_isCrouching = false;
 		}
+
+		if (IsOnFloor())
+		{
+			if (_isCrouching && IsMovingTooFast(MaxWalkSpeed))
+			{
+				SetMovementState(MovementStateType.Slide);
+			}
+			else
+			{
+				SetMovementState(MovementStateType.BootsOnGround);
+			}
+		}
 	}
 	
 	private void InitializeSlideMode()
 	{
-		
+		if (!IsOnFloor()) return;
+		if (!IsMovingTooFast(MaxSprintSpeed))
+			QuakeMove(_lookingDirectionVector, SlideAcceleration, MaxSlideSpeed, GetPhysicsProcessDeltaTime());
 	}
 	
 	private void ClearSlideMode()
@@ -292,7 +309,14 @@ public class Pilot : KinematicBody
 
 	private void ProcessSlideMode(float delta)
 	{
-		
+		ApplyHorizontalFriction(SlideFrictionGround, delta);
+		if (!IsMovingTooFast(MaxCrouchSpeed) || !_crouch)
+		{
+			SetMovementState(MovementStateType.BootsOnGround);
+		}
+
+		if (_jump && IsOnFloor())
+			Jump();
 	}
 
 	private bool IsMovingTooFast(float maxSpeed)
@@ -321,6 +345,7 @@ public class Pilot : KinematicBody
 	{
 		Velocity.y = JumpSpeed;
 		_snapVector = Vector3.Zero;
+		SetMovementState(MovementStateType.Airborne);
 	}
 	
 	private void _ProcessMovement(float delta)
@@ -359,18 +384,7 @@ public class Pilot : KinematicBody
 		{
 			SetMovementState(MovementStateType.Airborne);
 		}
-		else 
-		{
-			if (IsMovingTooFast(MaxSprintSpeed) && _isCrouching)
-			{
-				SetMovementState(MovementStateType.Slide);
-			}
-			else
-			{
-				SetMovementState(MovementStateType.BootsOnGround);
-			}
-		}
-
+		
 		switch (_currentMovementState)
 		{
 			case MovementStateType.BootsOnGround:
