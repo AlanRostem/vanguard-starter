@@ -31,7 +31,6 @@ public class Pilot : KinematicBody
 	private const float WalkDeceleration = 10f;
 	
 	private const float MaxSlideSpeed = 8.9f;
-	private const float SlideAcceleration = 22f;
 	
 	private const float ForwardPressAirAcceleration = 2f;
 	private const float AirStrafeAcceleration = 14f;
@@ -43,7 +42,7 @@ public class Pilot : KinematicBody
 	private const float JumpSpeed = 7f;
 
 	private const float WalkFrictionGround = 2f;
-	private const float SlideFrictionGround = 0.8f;
+	private const float SlideFrictionGround = 1f;
 
 	private const float StandHeight = 1.8f;
 	private const float CrouchHeight = 0.9f;
@@ -168,6 +167,7 @@ public class Pilot : KinematicBody
 				ClearAirborneMode();
 				break;
 			case MovementStateType.Slide:
+				ClearSlideMode();
 				break;
 		}
 
@@ -183,6 +183,7 @@ public class Pilot : KinematicBody
 				InitializeAirborneMode();
 				break;
 			case MovementStateType.Slide:
+				InitializeSlideMode();
 				break;
 		}
 	}
@@ -299,7 +300,9 @@ public class Pilot : KinematicBody
 	{
 		if (!IsOnFloor()) return;
 		if (!IsMovingTooFast(MaxSprintSpeed))
-			QuakeMove(_lookingDirectionVector, SlideAcceleration, MaxSlideSpeed, GetPhysicsProcessDeltaTime());
+		{
+			QuakeMove(_lookingDirectionVector, MaxSlideSpeed / GetPhysicsProcessDeltaTime(), MaxSlideSpeed, GetPhysicsProcessDeltaTime());
+		}
 	}
 	
 	private void ClearSlideMode()
